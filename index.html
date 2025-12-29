@@ -1,165 +1,232 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>スロット</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
-        .slot-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .reel {
-            width: 80px;
-            height: 100px;
-            background-color: white;
-            border: 4px solid #333;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            font-weight: bold;
-        }
-        button {
-            padding: 10px 30px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            background-color: #ff4757;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        #message {
-            margin-top: 15px;
-            font-size: 1.4rem;
-            font-weight: bold;
-            height: 1.5em;
-        }
-        #coins {
-            font-size: 1.3rem;
-            margin-bottom: 10px;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>スロット</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 20px;
+}
+
+#coins {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+}
+
+.slot-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.reel {
+    width: 80px;
+    height: 100px;
+    background: white;
+    border: 4px solid #333;
+    border-radius: 8px;
+    font-size: 3rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 🎉 演出 */
+.win {
+    animation: glow 0.8s infinite alternate;
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 5px gold; }
+    to { box-shadow: 0 0 20px gold; }
+}
+
+.bigwin {
+    animation: shake 0.2s infinite;
+}
+
+@keyframes shake {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(5px, 0); }
+    50% { transform: translate(-5px, 0); }
+    75% { transform: translate(5px, 0); }
+    100% { transform: translate(0, 0); }
+}
+
+button {
+    padding: 10px 30px;
+    font-size: 1.2rem;
+    background-color: #ff4757;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:disabled {
+    background-color: #ccc;
+}
+
+table {
+    margin: 15px auto;
+    border-collapse: collapse;
+    background: white;
+}
+
+th, td {
+    border: 2px solid #333;
+    padding: 6px 12px;
+}
+</style>
 </head>
+
 <body>
 
-<h1>簡易</h1>
+<h1>🎰 簡易スロット</h1>
 
-<div id="coins">所持コイン：100</div>
+<div id="coins"></div>
 
-<div class="slot-container">
-    <div id="reel1" class="reel">?</div>
-    <div id="reel2" class="reel">?</div>
-    <div id="reel3" class="reel">?</div>
+<div class="slot-container" id="slotArea">
+    <div class="reel" id="reel1">?</div>
+    <div class="reel" id="reel2">?</div>
+    <div class="reel" id="reel3">?</div>
 </div>
 
 <button id="spinBtn">スピン！（5コイン）</button>
-
 <div id="message"></div>
 
+<table>
+<tr><th>絵柄</th><th>確率</th><th>コイン</th></tr>
+<tr><td>7️⃣</td><td>0.1%</td><td>7777</td></tr>
+<tr><td>💎</td><td>0.9%</td><td>500</td></tr>
+<tr><td>⭐</td><td>1.2%</td><td>50</td></tr>
+<tr><td>🔔</td><td>5%</td><td>30</td></tr>
+<tr><td>🍒</td><td>15.8%</td><td>10</td></tr>
+<tr><th colspan="3">ハズレ：77%</th></tr>
+</table>
+
 <script>
-    const symbols = ["🍒", "🔔", "💎", "7️⃣", "⭐"];
-    const reels = [
-        document.getElementById("reel1"),
-        document.getElementById("reel2"),
-        document.getElementById("reel3")
-    ];
-    const spinBtn = document.getElementById("spinBtn");
-    const message = document.getElementById("message");
-    const coinDisplay = document.getElementById("coins");
+const reels = [
+    document.getElementById("reel1"),
+    document.getElementById("reel2"),
+    document.getElementById("reel3")
+];
 
-    let coins = 100;
-    const playCost = 5;
+const slotArea = document.getElementById("slotArea");
+const spinBtn = document.getElementById("spinBtn");
+const message = document.getElementById("message");
+const coinDisplay = document.getElementById("coins");
 
-    /* ===== サウンド ===== */
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const playCost = 5;
 
-    function playSound(freq, duration) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.frequency.value = freq;
-        osc.type = "square";
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.stop(audioCtx.currentTime + duration);
+/* 💾 コイン保存 */
+let coins = Number(localStorage.getItem("slotCoins")) || 100;
+
+function saveCoins() {
+    localStorage.setItem("slotCoins", coins);
+}
+
+function updateCoins() {
+    coinDisplay.textContent = `所持コイン：${coins}`;
+    saveCoins();
+}
+
+/* 🔊 サウンド */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(freq, time) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = freq;
+    osc.type = "square";
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time);
+    osc.stop(audioCtx.currentTime + time);
+}
+
+/* 🎯 確率テーブル */
+const prizeTable = [
+    { symbol: "7️⃣", rate: 0.1, reward: 7777, big: true },
+    { symbol: "💎", rate: 0.9, reward: 500 },
+    { symbol: "⭐", rate: 1.2, reward: 50 },
+    { symbol: "🔔", rate: 5.0, reward: 30 },
+    { symbol: "🍒", rate: 15.8, reward: 10 }
+];
+
+function lottery() {
+    let r = Math.random() * 100;
+    let sum = 0;
+    for (const p of prizeTable) {
+        sum += p.rate;
+        if (r < sum) return p;
+    }
+    return null;
+}
+
+/* 🎰 スピン */
+spinBtn.onclick = () => {
+    if (coins < playCost) {
+        message.textContent = "コイン不足！";
+        return;
     }
 
-    function updateCoins() {
-        coinDisplay.textContent = `所持コイン：${coins}`;
-    }
+    coins -= playCost;
+    updateCoins();
+    spinBtn.disabled = true;
+    message.textContent = "回転中…";
 
-    function getRandomSymbol() {
-        return symbols[Math.floor(Math.random() * symbols.length)];
-    }
+    reels.forEach(r => r.className = "reel");
+    slotArea.classList.remove("bigwin");
 
-    spinBtn.addEventListener("click", () => {
-        if (coins < playCost) {
-            message.textContent = "コインが足りません！";
-            message.style.color = "red";
-            return;
+    let count = 0;
+    const spin = setInterval(() => {
+        reels.forEach(r => r.textContent = "❓");
+        playSound(400, 0.05);
+        if (++count > 12) {
+            clearInterval(spin);
+            checkResult();
+            spinBtn.disabled = false;
         }
+    }, 100);
+};
 
-        coins -= playCost;
+function checkResult() {
+    const prize = lottery();
+
+    if (prize) {
+        reels.forEach(r => {
+            r.textContent = prize.symbol;
+            r.classList.add("win");
+        });
+
+        coins += prize.reward;
         updateCoins();
 
-        spinBtn.disabled = true;
-        message.textContent = "回転中...";
-        message.style.color = "#333";
-
-        let count = 0;
-        const maxSpins = 12;
-
-        const interval = setInterval(() => {
-            reels.forEach(reel => reel.textContent = getRandomSymbol());
-            playSound(400, 0.05); // スピン音
-            count++;
-
-            if (count >= maxSpins) {
-                clearInterval(interval);
-                checkResult();
-                spinBtn.disabled = false;
-            }
-        }, 100);
-    });
-
-    function checkResult() {
-        const results = reels.map(r => r.textContent);
-
-        if (results.every(r => r === "7️⃣")) {
-            coins += 777;
-            updateCoins();
-            message.textContent = "🎉🎉 777大当たり！ +777コイン！！ 🎉🎉";
-            message.style.color = "#e67e22";
-            playSound(1000, 0.6);
-        } else if (results[0] === results[1] && results[1] === results[2]) {
-            message.textContent = "🎉 あたり！";
-            message.style.color = "#27ae60";
-            playSound(700, 0.3);
+        if (prize.big) {
+            slotArea.classList.add("bigwin");
+            playSound(1200, 0.8);
         } else {
-            message.textContent = "残念、ハズレ。";
-            message.style.color = "#333";
+            playSound(800, 0.4);
         }
-    }
 
-    updateCoins();
+        message.textContent = `🎉 +${prize.reward}コイン！`;
+    } else {
+        reels.forEach(r => r.textContent = "❌");
+        message.textContent = "ハズレ…";
+    }
+}
+
+updateCoins();
 </script>
 
 </body>
