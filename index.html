@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>スロット</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .slot-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .reel {
+            width: 80px;
+            height: 100px;
+            background-color: white;
+            border: 4px solid #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        button {
+            padding: 10px 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            background-color: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #message {
+            margin-top: 15px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            height: 1.5em;
+        }
+        #coins {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>簡易</h1>
+
+<div id="coins">所持コイン：100</div>
+
+<div class="slot-container">
+    <div id="reel1" class="reel">?</div>
+    <div id="reel2" class="reel">?</div>
+    <div id="reel3" class="reel">?</div>
+</div>
+
+<button id="spinBtn">スピン！（5コイン）</button>
+
+<div id="message"></div>
+
+<script>
+    const symbols = ["🍒", "🔔", "💎", "7️⃣", "⭐"];
+    const reels = [
+        document.getElementById("reel1"),
+        document.getElementById("reel2"),
+        document.getElementById("reel3")
+    ];
+    const spinBtn = document.getElementById("spinBtn");
+    const message = document.getElementById("message");
+    const coinDisplay = document.getElementById("coins");
+
+    let coins = 100;
+    const playCost = 5;
+
+    /* ===== サウンド ===== */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(freq, duration) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        osc.type = "square";
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function updateCoins() {
+        coinDisplay.textContent = `所持コイン：${coins}`;
+    }
+
+    function getRandomSymbol() {
+        return symbols[Math.floor(Math.random() * symbols.length)];
+    }
+
+    spinBtn.addEventListener("click", () => {
+        if (coins < playCost) {
+            message.textContent = "コインが足りません！";
+            message.style.color = "red";
+            return;
+        }
+
+        coins -= playCost;
+        updateCoins();
+
+        spinBtn.disabled = true;
+        message.textContent = "回転中...";
+        message.style.color = "#333";
+
+        let count = 0;
+        const maxSpins = 12;
+
+        const interval = setInterval(() => {
+            reels.forEach(reel => reel.textContent = getRandomSymbol());
+            playSound(400, 0.05); // スピン音
+            count++;
+
+            if (count >= maxSpins) {
+                clearInterval(interval);
+                checkResult();
+                spinBtn.disabled = false;
+            }
+        }, 100);
+    });
+
+    function checkResult() {
+        const results = reels.map(r => r.textContent);
+
+        if (results.every(r => r === "7️⃣")) {
+            coins += 777;
+            updateCoins();
+            message.textContent = "🎉🎉 777大当たり！ +777コイン！！ 🎉🎉";
+            message.style.color = "#e67e22";
+            playSound(1000, 0.6);
+        } else if (results[0] === results[1] && results[1] === results[2]) {
+            message.textContent = "🎉 あたり！";
+            message.style.color = "#27ae60";
+            playSound(700, 0.3);
+        } else {
+            message.textContent = "残念、ハズレ。";
+            message.style.color = "#333";
+        }
+    }
+
+    updateCoins();
+</script>
+
+</body>
+</html>
